@@ -1,4 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-contract Escrow {}
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+
+contract Escrow is Ownable, ReentrancyGuard {
+    /// @dev Errors
+    /// @dev Enums
+    /// @dev Variables
+    /// @dev Structs
+    /// @dev Mappings
+    /// @dev Events
+
+    /// @dev Constructor
+    constructor(address owner) Ownable(owner) {}
+
+    //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
+    //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
+    //////////////////////////////////// @notice Escrow Owners Functions //////////////////////////////////////
+    //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
+}
