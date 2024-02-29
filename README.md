@@ -1,66 +1,28 @@
-## Foundry
+# Escrow Contract
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+## Blockchain
 
-Foundry consists of:
+-   Ethereum
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## Networks
 
-## Documentation
+-   Localhost
+-   Sepolia
 
-https://book.getfoundry.sh/
+## Language
 
-## Usage
+-   Solidity
+-   Type Script
 
-### Build
+## Framework
 
-```shell
-$ forge build
-```
+-   Foundry
 
-### Test
+## Smart Contract Details
 
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+    ● Maintains separate accounts for each user, allowing efficient handling of multiple users simultaneously
+    ● Allows for the multi-call of entrypoints: deposit and withdraw in single transaction (swap).
+    ● Only the owner of an account should be able to withdraw funds from their respective escrow account.
+    ● Utilizing a generic token type (SPL Token, Erc20, PSP22) based on your chosen ecosystem.
+    ● Address potential security concerns, particularly vulnerabilities like reentrancy.
+    ● Includes end-to-end unit tests using type script.
