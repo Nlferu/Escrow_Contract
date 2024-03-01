@@ -20,7 +20,7 @@
 
 ## Smart Contract Details
 
-    ● Maintains separate accounts for each user, allowing efficient handling of multiple users simultaneously
+    ● Maintains separate accounts for each user, allowing efficient handling of multiple users simultaneously.
     ● Allows for the multi-call of entrypoints: deposit and withdraw in single transaction (swap).
     ● Only the owner of an account should be able to withdraw funds from their respective escrow account.
     ● Utilizing a generic token type (SPL Token, Erc20, PSP22) based on your chosen ecosystem.
