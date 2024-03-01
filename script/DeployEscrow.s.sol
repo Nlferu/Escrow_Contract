@@ -10,8 +10,8 @@ contract DeployEscrow is Script {
         uint256 deployerKey = vm.envUint("LOCAL_PRIVATE_KEY");
 
         vm.startBroadcast(deployerKey);
-        Escrow escrow = new Escrow(msg.sender);
-        console.log("Escrow Deployed -> Owner: ", msg.sender);
+        Escrow escrow = new Escrow();
+        console.log("Escrow Deployed -> Owner: ", escrow.owner());
         vm.stopBroadcast();
 
         return (escrow);
