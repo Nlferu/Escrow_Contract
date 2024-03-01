@@ -13,7 +13,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Events
 
     /// @dev Constructor
-    constructor(address owner) Ownable(owner) {}
+    constructor() Ownable(msg.sender) {}
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
     //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
