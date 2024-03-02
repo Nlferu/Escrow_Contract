@@ -16,6 +16,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Errors
     error Escrow__TokenAlreadySupported();
     error Escrow__TokenAlreadyNotSupported();
+    error Escrow__TokenNotSupported();
     /// @dev Enums
     /// @dev Variables
     /// @dev Structs
@@ -32,17 +33,20 @@ contract Escrow is Ownable, ReentrancyGuard {
     function initializeEscrow(address counterparty, address token) external {}
 
     function depositToken(address tokenAddress, uint256 amount) external {
-        require(supportedTokens[tokenAddress], "Token not supported");
+        if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+
         require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
     }
 
     function withdrawToken(address tokenAddress, address recipient, uint256 amount) external {
-        require(supportedTokens[tokenAddress], "Token not supported");
+        if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+
         require(IERC20(tokenAddress).transfer(recipient, amount), "Transfer failed");
     }
 
     function getTokenBalance(address tokenAddress) external view returns (uint256) {
-        require(supportedTokens[tokenAddress], "Token not supported");
+        if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+
         return IERC20(tokenAddress).balanceOf(address(this));
     }
 
