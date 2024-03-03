@@ -117,6 +117,8 @@ contract Escrow is Ownable, ReentrancyGuard {
 
         bool transfer = IERC20(escrows.idToPartyTwoToken).transfer(escrows.idToPartyOne, escrows.idToPartyTwoTokensAmount);
         if (!transfer) revert Escrow__TransferFailed();
+
+        escrows.idToEscrowStatus = EscrowStatus.PERFORMED;
     }
 
     //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
@@ -146,5 +148,19 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
 
         return IERC20(tokenAddress).balanceOf(address(this));
+    }
+
+    function getEscrowData(uint256 escrowId) external view returns (address, address, address, address, uint256, uint256, EscrowStatus) {
+        Escrows storage escrows = s_escrows[escrowId];
+
+        return (
+            escrows.idToPartyOne,
+            escrows.idToPartyTwo,
+            escrows.idToPartyOneToken,
+            escrows.idToPartyTwoToken,
+            escrows.idToPartyOneTokensAmount,
+            escrows.idToPartyTwoTokensAmount,
+            escrows.idToEscrowStatus
+        );
     }
 }
