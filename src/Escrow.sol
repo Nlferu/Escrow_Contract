@@ -98,6 +98,14 @@ contract Escrow is Ownable, ReentrancyGuard {
         // Add owner to allow him cancel escrow
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
         if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
+
+        bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
+        if (!success) revert Escrow__TransferFailed();
+
+        bool transfer = IERC20(escrows.idToPartyTwoToken).transfer(escrows.idToPartyTwo, escrows.idToPartyTwoTokensAmount);
+        if (!transfer) revert Escrow__TransferFailed();
+
+        escrows.idToEscrowStatus = EscrowStatus.CANCELLED;
     }
 
     function getTokenBalance(address tokenAddress) external view returns (uint256) {
