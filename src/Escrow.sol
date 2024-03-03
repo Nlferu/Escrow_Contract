@@ -18,6 +18,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     error Escrow__TokenAlreadyNotSupported();
     error Escrow__TokenNotSupported();
     error Escrow__TransferFailed();
+
     /// @dev Enums
     enum EscroStatus {
         PENDING,
@@ -25,42 +26,62 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
 
     /// @dev Variables
+    uint256 private s_totalEscrows;
+
     /// @dev Structs
     struct Escrows {
         address idToPartyOne;
         address idToPartyTwo;
-        uint256 idToPartyOneBalance;
-        uint256 idToPartyTwoBalance;
+        address idToPartyOneToken;
+        address idToPartyTwoToken;
+        uint256 idToTokensAmount;
     }
     /// @dev Mappings
-    mapping(address => bool) private supportedTokens;
+    mapping(address => bool) private s_supportedTokens;
     mapping(address => uint256) private tokenToAmount;
+    mapping(uint256 => Escrows) private s_escrows;
 
     /// @dev Events
+    event NewEscrowInitialized(uint256 escrowId, address initializer, address counterparty, uint256 tokensAmount);
+    event TokensTransferred(address token, uint256 amount);
 
     /// @dev Constructor
     constructor() Ownable(msg.sender) {}
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
 
-    function initializeEscrow(address counterparty, address token) external {}
+    function initializeEscrow(address counterparty, address initialToken, address finalToken, uint256 amount) external {
+        if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
 
-    function depositToken(address tokenAddress, uint256 amount) external {
-        if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+        emit NewEscrowInitialized(s_totalEscrows, msg.sender, counterparty, amount);
 
-        bool success = IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+        Escrows storage escrows = s_escrows[s_totalEscrows];
+        escrows.idToPartyOne = msg.sender;
+        escrows.idToPartyTwo = counterparty;
+        escrows.idToPartyOneToken = initialToken;
+        escrows.idToPartyTwoToken = finalToken;
+        escrows.idToTokensAmount = amount;
+        s_totalEscrows += 1;
+
+        emit TokensTransferred(initialToken, amount);
+
+        bool success = IERC20(initialToken).transferFrom(msg.sender, address(this), amount);
         if (!success) revert Escrow__TransferFailed();
     }
 
     function withdrawToken(address tokenAddress, address recipient, uint256 amount) external {
-        if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+        if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
 
         bool success = IERC20(tokenAddress).transfer(recipient, amount);
         if (!success) revert Escrow__TransferFailed();
     }
 
+    function exchangeTokens(uint256 escrowId) internal {}
+
+    function cancelEscrow() internal {}
+
     function getTokenBalance(address tokenAddress) external view returns (uint256) {
-        if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+        if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
 
         return IERC20(tokenAddress).balanceOf(address(this));
     }
@@ -69,15 +90,15 @@ contract Escrow is Ownable, ReentrancyGuard {
     //////////////////////////////////// @notice Escrow Owners Functions //////////////////////////////////////
 
     function addSupportedToken(address tokenAddress) external onlyOwner {
-        if (supportedTokens[tokenAddress]) revert Escrow__TokenAlreadySupported();
+        if (s_supportedTokens[tokenAddress]) revert Escrow__TokenAlreadySupported();
 
-        supportedTokens[tokenAddress] = true;
+        s_supportedTokens[tokenAddress] = true;
     }
 
     function removeSupportedToken(address tokenAddress) external onlyOwner {
-        if (!supportedTokens[tokenAddress]) revert Escrow__TokenAlreadyNotSupported();
+        if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenAlreadyNotSupported();
 
-        supportedTokens[tokenAddress] = false;
+        s_supportedTokens[tokenAddress] = false;
     }
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
 }
