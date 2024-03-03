@@ -18,6 +18,9 @@ contract Escrow is Ownable, ReentrancyGuard {
     error Escrow__TokenAlreadyNotSupported();
     error Escrow__TokenNotSupported();
     error Escrow__TransferFailed();
+    error Escrow__NotActive();
+    error Escrow__CpNotAllowed();
+    error Escrow__CancelNotAllowed();
 
     /// @dev Enums
     enum EscrowStatus {
@@ -79,9 +82,16 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (!success) revert Escrow__TransferFailed();
     }
 
-    function exchangeTokens(uint256 escrowId) internal {}
+    function exchangeTokens(uint256 escrowId) internal {
+        Escrows storage escrows = s_escrows[escrowId];
+        if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
+        if (msg.sender != escrows.idToPartyTwo) revert Escrow__CpNotAllowed();
+    }
 
-    function cancelEscrow() internal {}
+    function cancelEscrow(uint256 escrowId) internal {
+        Escrows storage escrows = s_escrows[escrowId];
+        if (msg.sender != escrows.idToPartyOne || msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
+    }
 
     function getTokenBalance(address tokenAddress) external view returns (uint256) {
         if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
