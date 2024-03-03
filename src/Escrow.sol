@@ -38,7 +38,8 @@ contract Escrow is Ownable, ReentrancyGuard {
         address idToPartyTwo;
         address idToPartyOneToken;
         address idToPartyTwoToken;
-        uint256 idToTokensAmount;
+        uint256 idToPartyOneTokensAmount;
+        uint256 idToPartyTwoTokensAmount;
         EscrowStatus idToEscrowStatus;
     }
     /// @dev Mappings
@@ -59,20 +60,19 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
 
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, counterparty, amount);
+        emit TokensTransferred(initialToken, amount);
+
+        bool success = IERC20(initialToken).transferFrom(msg.sender, address(this), amount);
+        if (!success) revert Escrow__TransferFailed();
 
         Escrows storage escrows = s_escrows[s_totalEscrows];
         escrows.idToPartyOne = msg.sender;
         escrows.idToPartyTwo = counterparty;
         escrows.idToPartyOneToken = initialToken;
         escrows.idToPartyTwoToken = finalToken;
-        escrows.idToTokensAmount = amount;
+        escrows.idToPartyOneTokensAmount = amount;
         escrows.idToEscrowStatus = EscrowStatus.PENDING;
         s_totalEscrows += 1;
-
-        emit TokensTransferred(initialToken, amount);
-
-        bool success = IERC20(initialToken).transferFrom(msg.sender, address(this), amount);
-        if (!success) revert Escrow__TransferFailed();
     }
 
     function withdrawToken(address tokenAddress, address recipient, uint256 amount) external {
@@ -82,15 +82,22 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (!success) revert Escrow__TransferFailed();
     }
 
-    function exchangeTokens(uint256 escrowId) internal {
+    function exchangeTokens(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
         if (msg.sender != escrows.idToPartyTwo) revert Escrow__CpNotAllowed();
+
+        bool success = IERC20(escrows.idToPartyTwoToken).transferFrom(msg.sender, address(this), escrows.idToPartyOneTokensAmount);
+        if (!success) revert Escrow__TransferFailed();
+
+        escrows.idToPartyTwoTokensAmount = escrows.idToPartyOneTokensAmount;
     }
 
-    function cancelEscrow(uint256 escrowId) internal {
+    function cancelEscrow(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
-        if (msg.sender != escrows.idToPartyOne || msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
+        // Add owner to allow him cancel escrow
+        if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
+        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
     }
 
     function getTokenBalance(address tokenAddress) external view returns (uint256) {
