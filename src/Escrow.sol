@@ -20,9 +20,10 @@ contract Escrow is Ownable, ReentrancyGuard {
     error Escrow__TransferFailed();
 
     /// @dev Enums
-    enum EscroStatus {
+    enum EscrowStatus {
         PENDING,
-        DONE
+        PERFORMED,
+        CANCELLED
     }
 
     /// @dev Variables
@@ -35,6 +36,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         address idToPartyOneToken;
         address idToPartyTwoToken;
         uint256 idToTokensAmount;
+        EscrowStatus idToEscrowStatus;
     }
     /// @dev Mappings
     mapping(address => bool) private s_supportedTokens;
@@ -61,6 +63,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToPartyOneToken = initialToken;
         escrows.idToPartyTwoToken = finalToken;
         escrows.idToTokensAmount = amount;
+        escrows.idToEscrowStatus = EscrowStatus.PENDING;
         s_totalEscrows += 1;
 
         emit TokensTransferred(initialToken, amount);
