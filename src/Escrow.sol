@@ -17,11 +17,24 @@ contract Escrow is Ownable, ReentrancyGuard {
     error Escrow__TokenAlreadySupported();
     error Escrow__TokenAlreadyNotSupported();
     error Escrow__TokenNotSupported();
+    error Escrow__TransferFailed();
     /// @dev Enums
+    enum EscroStatus {
+        PENDING,
+        DONE
+    }
+
     /// @dev Variables
     /// @dev Structs
+    struct Escrows {
+        address idToPartyOne;
+        address idToPartyTwo;
+        uint256 idToPartyOneBalance;
+        uint256 idToPartyTwoBalance;
+    }
     /// @dev Mappings
-    mapping(address => bool) public supportedTokens;
+    mapping(address => bool) private supportedTokens;
+    mapping(address => uint256) private tokenToAmount;
 
     /// @dev Events
 
@@ -35,13 +48,15 @@ contract Escrow is Ownable, ReentrancyGuard {
     function depositToken(address tokenAddress, uint256 amount) external {
         if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
 
-        require(IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount), "Transfer failed");
+        bool success = IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
+        if (!success) revert Escrow__TransferFailed();
     }
 
     function withdrawToken(address tokenAddress, address recipient, uint256 amount) external {
         if (!supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
 
-        require(IERC20(tokenAddress).transfer(recipient, amount), "Transfer failed");
+        bool success = IERC20(tokenAddress).transfer(recipient, amount);
+        if (!success) revert Escrow__TransferFailed();
     }
 
     function getTokenBalance(address tokenAddress) external view returns (uint256) {
