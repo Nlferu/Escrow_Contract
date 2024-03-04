@@ -28,17 +28,9 @@ contract EscrowTest is StdCheats, Test {
         (astaroth) = astDeployer.run();
         (hestus) = hstDeployer.run();
         (escrow) = escrowDeployer.run();
-
-        console.log("Astaroth Token: ", address(astaroth));
-        console.log("Hestus Token: ", address(hestus));
-        console.log("Escrow Contract: ", address(escrow));
     }
 
     function testIsSetupPerformedCorrectly() public {
-        console.log("Astaroth Owner: ", "0x70997970C51812dc3A010C7d01b50e0d17dc79C8");
-        console.log("Hestus Owner: ", "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC");
-        console.log("Escrow Owner: ", address(escrowDeployer));
-
         console.log("AST User Balance", astaroth.balanceOf(0x70997970C51812dc3A010C7d01b50e0d17dc79C8));
         console.log("HST User Balance", hestus.balanceOf(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC));
     }
