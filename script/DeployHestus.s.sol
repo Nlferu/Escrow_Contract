@@ -6,17 +6,18 @@ import {console} from "forge-std/Test.sol";
 import {Script} from "forge-std/Script.sol";
 
 contract DeployHestus is Script {
-    function run() external returns (Hestus) {
+    function run() external returns (Hestus, address) {
         uint256 deployerKey = vm.envUint("HST_PRIVATE_KEY");
 
         uint256 hstSupply = 9000;
 
         vm.startBroadcast(deployerKey);
         Hestus hestus = new Hestus(hstSupply);
+        address hstOwner = vm.addr(deployerKey);
         console.log("Hestus Token Deployed: ", address(hestus));
-        console.log("Hestus Token Owner: ", vm.addr(deployerKey));
+        console.log("Hestus Token Owner: ", hstOwner);
         vm.stopBroadcast();
 
-        return (hestus);
+        return (hestus, hstOwner);
     }
 }
