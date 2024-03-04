@@ -62,6 +62,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     event EscrowApprovedToUseTokens(address indexed token);
     event TokenAddedToSupportedTokensList(address indexed token);
     event TokenRemovedFromSupportedTokensList(address indexed token);
+    event EscrowPerformedSuccessfully(uint256 indexed escrowId);
     event EscrowCancelled(uint256 indexed escrowId);
 
     /// @dev Constructor
@@ -69,6 +70,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
 
+    /** @dev We can consider removing counterparty to allow any user to participate certain escrow */
     function initializeEscrow(address counterparty, address initialToken, address finalToken, uint256 amount) external {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
 
@@ -115,7 +117,9 @@ contract Escrow is Ownable, ReentrancyGuard {
         Escrows storage escrows = s_escrows[escrowId];
         // Add owner to allow him cancel escrow
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
-        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
+        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo && msg.sender != owner()) revert Escrow__CancelNotAllowed();
+
+        emit EscrowCancelled(escrowId);
 
         bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
@@ -130,6 +134,8 @@ contract Escrow is Ownable, ReentrancyGuard {
     function performEscrow(uint256 escrowId) external onlyOwner {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
+
+        emit EscrowPerformedSuccessfully(escrowId);
 
         bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyTwo, escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
