@@ -6,7 +6,7 @@ import {Hestus} from "../src/tokens/Hestus.sol";
 import {console} from "forge-std/Test.sol";
 import {Script} from "forge-std/Script.sol";
 
-contract DeployEscrow is Script {
+contract DeployTokens is Script {
     function run() external returns (Astaroth, Hestus) {
         uint256 deployerKey = vm.envUint("LOCAL_PRIVATE_KEY");
 
