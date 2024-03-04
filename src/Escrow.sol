@@ -57,9 +57,12 @@ contract Escrow is Ownable, ReentrancyGuard {
     mapping(address => bool) private s_supportedTokens;
 
     /// @dev Events
-    event NewEscrowInitialized(uint256 escrowId, address initializer, address counterparty, uint256 tokensAmount);
-    event TokensTransferred(address token, uint256 amount);
-    event EscrowApprovedToUseTokens(address token);
+    event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, address indexed counterparty, uint256 tokensAmount);
+    event TokensTransferred(address indexed token, uint256 indexed amount);
+    event EscrowApprovedToUseTokens(address indexed token);
+    event TokenAddedToSupportedTokensList(address indexed token);
+    event TokenRemovedFromSupportedTokensList(address indexed token);
+    event EscrowCancelled(uint256 indexed escrowId);
 
     /// @dev Constructor
     constructor() Ownable(msg.sender) {}
@@ -88,13 +91,6 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToPartyOneTokensAmount = amount;
         escrows.idToEscrowStatus = EscrowStatus.PENDING;
         s_totalEscrows += 1;
-    }
-
-    function withdrawToken(address tokenAddress, address recipient, uint256 amount) external {
-        if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
-
-        bool success = IERC20(tokenAddress).transfer(recipient, amount);
-        if (!success) revert Escrow__TransferFailed();
     }
 
     function exchangeTokens(uint256 escrowId) external {
@@ -130,7 +126,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToEscrowStatus = EscrowStatus.CANCELLED;
     }
 
-    /** @dev If we automate this contract with chainlink automation keepers, keeper should be also owner/allowed */
+    /** @dev If we automate this contract with chainlink automation keepers, this should be internal and callable only by keeper */
     function performEscrow(uint256 escrowId) external onlyOwner {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
@@ -150,13 +146,26 @@ contract Escrow is Ownable, ReentrancyGuard {
     function addSupportedToken(address token) external onlyOwner {
         if (s_supportedTokens[token]) revert Escrow__TokenAlreadySupported();
 
+        emit TokenAddedToSupportedTokensList(token);
+
         s_supportedTokens[token] = true;
+        s_supportedTokensList.push(token);
     }
 
     function removeSupportedToken(address token) external onlyOwner {
         if (!s_supportedTokens[token]) revert Escrow__TokenAlreadyNotSupported();
 
         s_supportedTokens[token] = false;
+
+        for (uint i = 0; i < s_supportedTokensList.length; i++) {
+            if (s_supportedTokensList[i] == token) {
+                emit TokenRemovedFromSupportedTokensList(token);
+
+                // Swapping wallet to be removed into last spot in array, so we can pop it and avoid getting 0 in array
+                s_supportedTokensList[i] = s_supportedTokensList[s_supportedTokensList.length - 1];
+                s_supportedTokensList.pop();
+            }
+        }
     }
 
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
