@@ -4,17 +4,17 @@
 
 -   Ethereum
 
-## Networks
+## Supported Networks
 
 -   Localhost
 -   Sepolia
 
-## Language
+## Languages Used
 
 -   Solidity
 -   Type Script
 
-## Framework
+## Frameworks Used
 
 -   Foundry
 
