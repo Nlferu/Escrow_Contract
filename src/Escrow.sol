@@ -5,9 +5,6 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@solmate/utils/ReentrancyGuard.sol";
 
 interface IERC20 {
-    /** @notice Allows to approve smart contract to acquire and manage chosen token amount */
-    function approve(address spender, uint256 amount) external returns (bool);
-
     /** @notice Allows to transfer tokens from any address to any recipient */
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
@@ -58,7 +55,6 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Events
     event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, uint256 tokensAmount);
     event TokensTransferred(address indexed token, uint256 indexed amount);
-    event EscrowApprovedToUseTokens(address indexed token);
     event TokenAddedToSupportedTokensList(address indexed token);
     event TokenRemovedFromSupportedTokensList(address indexed token);
     event EscrowSettledSuccessfully(uint256 indexed escrowId);
@@ -69,14 +65,10 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
 
+    /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract */
     /** @notice Initializing escrow for chosen tokens and their amounts, where exchange is 1:1 */
     function initializeEscrow(address initialToken, address finalToken, uint256 amount) external {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
-
-        emit EscrowApprovedToUseTokens(initialToken);
-
-        bool approve = IERC20(initialToken).approve(address(this), amount);
-        if (!approve) revert Escrow__ApproveFailed();
 
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, amount);
         emit TokensTransferred(initialToken, amount);
@@ -93,15 +85,11 @@ contract Escrow is Ownable, ReentrancyGuard {
         s_totalEscrows += 1;
     }
 
+    /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract */
     /** @notice This function is second part that needs to be fulfilled to settle escrow */
     function exchangeTokens(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
-
-        emit EscrowApprovedToUseTokens(escrows.idToPartyTwoToken);
-
-        bool approve = IERC20(escrows.idToPartyTwoToken).approve(address(this), escrows.idToPartyOneTokensAmount);
-        if (!approve) revert Escrow__ApproveFailed();
 
         emit TokensTransferred(escrows.idToPartyTwoToken, escrows.idToPartyOneTokensAmount);
 
