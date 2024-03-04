@@ -32,7 +32,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Enums
     enum EscrowStatus {
         PENDING,
-        PERFORMED,
+        SETTLED,
         CANCELLED
     }
 
@@ -62,7 +62,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     event EscrowApprovedToUseTokens(address indexed token);
     event TokenAddedToSupportedTokensList(address indexed token);
     event TokenRemovedFromSupportedTokensList(address indexed token);
-    event EscrowPerformedSuccessfully(uint256 indexed escrowId);
+    event EscrowSettledSuccessfully(uint256 indexed escrowId);
     event EscrowCancelled(uint256 indexed escrowId);
 
     /// @dev Constructor
@@ -70,7 +70,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
 
-    /** @dev We can consider removing counterparty to allow any user to participate certain escrow */
+    /** @notice We can consider removing counterparty to allow any user to participate certain escrow */
     function initializeEscrow(address counterparty, address initialToken, address finalToken, uint256 amount) external {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
 
@@ -95,6 +95,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         s_totalEscrows += 1;
     }
 
+    /** @notice This function is second part that needs to be fulfilled to settle escrow */
     function exchangeTokens(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
@@ -113,6 +114,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToPartyTwoTokensAmount = escrows.idToPartyOneTokensAmount;
     }
 
+    /** @notice This function contains withdraw function */
     function cancelEscrow(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
         // Add owner to allow him cancel escrow
@@ -130,12 +132,12 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToEscrowStatus = EscrowStatus.CANCELLED;
     }
 
-    /** @dev If we automate this contract with chainlink automation keepers, this should be internal and callable only by keeper */
-    function performEscrow(uint256 escrowId) external onlyOwner {
+    /** @notice If we automate this contract with chainlink automation keepers, this should be internal and callable only by keeper */
+    function settleEscrow(uint256 escrowId) external onlyOwner {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
-        emit EscrowPerformedSuccessfully(escrowId);
+        emit EscrowSettledSuccessfully(escrowId);
 
         bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyTwo, escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
@@ -143,7 +145,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         bool transfer = IERC20(escrows.idToPartyTwoToken).transfer(escrows.idToPartyOne, escrows.idToPartyTwoTokensAmount);
         if (!transfer) revert Escrow__TransferFailed();
 
-        escrows.idToEscrowStatus = EscrowStatus.PERFORMED;
+        escrows.idToEscrowStatus = EscrowStatus.SETTLED;
     }
 
     //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
