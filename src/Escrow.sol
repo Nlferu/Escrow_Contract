@@ -5,13 +5,16 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@solmate/utils/ReentrancyGuard.sol";
 
 interface IERC20 {
+    /** @notice Allows to approve smart contract to acquire and manage chosen token amount */
     function approve(address spender, uint256 amount) external returns (bool);
 
+    /** @notice Allows to transfer tokens from any address to any recipient */
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
+    /** @notice Allows to transfer tokens from this address to recipient */
     function transfer(address to, uint256 amount) external returns (bool);
 
-    /** @notice dsa */
+    /** @notice Allows to check token balance for certain address */
     function balanceOf(address account) external view returns (uint256);
 }
 
