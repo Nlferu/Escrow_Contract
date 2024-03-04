@@ -65,7 +65,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
 
-    /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract */
+    /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract as msg.sender must be user */
     /** @notice Initializing escrow for chosen tokens and their amounts, where exchange is 1:1 */
     function initializeEscrow(address initialToken, address finalToken, uint256 amount) external {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
@@ -85,7 +85,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         s_totalEscrows += 1;
     }
 
-    /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract */
+    /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract as msg.sender must be user */
     /** @notice This function is second part that needs to be fulfilled to settle escrow */
     function exchangeTokens(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
