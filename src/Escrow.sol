@@ -27,6 +27,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     error Escrow__NotActive();
     error Escrow__CpNotAllowed();
     error Escrow__CancelNotAllowed();
+    error Escrow__ApproveFailed();
 
     /// @dev Enums
     enum EscrowStatus {
@@ -37,6 +38,9 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     /// @dev Variables
     uint256 private s_totalEscrows;
+
+    /// @dev Arrays
+    address[] private s_supportedTokensList;
 
     /// @dev Structs
     struct Escrows {
@@ -55,6 +59,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Events
     event NewEscrowInitialized(uint256 escrowId, address initializer, address counterparty, uint256 tokensAmount);
     event TokensTransferred(address token, uint256 amount);
+    event EscrowApprovedToUseTokens(address token);
 
     /// @dev Constructor
     constructor() Ownable(msg.sender) {}
@@ -63,6 +68,11 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     function initializeEscrow(address counterparty, address initialToken, address finalToken, uint256 amount) external {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
+
+        emit EscrowApprovedToUseTokens(initialToken);
+
+        bool approve = IERC20(initialToken).approve(address(this), amount);
+        if (!approve) revert Escrow__ApproveFailed();
 
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, counterparty, amount);
         emit TokensTransferred(initialToken, amount);
@@ -92,6 +102,13 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
         if (msg.sender != escrows.idToPartyTwo) revert Escrow__CpNotAllowed();
 
+        emit EscrowApprovedToUseTokens(escrows.idToPartyTwoToken);
+
+        bool approve = IERC20(escrows.idToPartyTwoToken).approve(address(this), escrows.idToPartyOneTokensAmount);
+        if (!approve) revert Escrow__ApproveFailed();
+
+        emit TokensTransferred(escrows.idToPartyTwoToken, escrows.idToPartyOneTokensAmount);
+
         bool success = IERC20(escrows.idToPartyTwoToken).transferFrom(msg.sender, address(this), escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
 
@@ -113,7 +130,8 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToEscrowStatus = EscrowStatus.CANCELLED;
     }
 
-    function performEscrow(uint256 escrowId) external {
+    /** @dev If we automate this contract with chainlink automation keepers, keeper should be also owner/allowed */
+    function performEscrow(uint256 escrowId) external onlyOwner {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
@@ -143,7 +161,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
 
-    function checkIfTokenIsSupported(address token) external view returns (bool) {
+    function getSupportedTokens(address token) external view returns (bool) {
         return s_supportedTokens[token];
     }
 
