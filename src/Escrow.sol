@@ -5,10 +5,13 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@solmate/utils/ReentrancyGuard.sol";
 
 interface IERC20 {
+    function approve(address spender, uint256 amount) external returns (bool);
+
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 
     function transfer(address to, uint256 amount) external returns (bool);
 
+    /** @notice dsa */
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -44,7 +47,6 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
     /// @dev Mappings
     mapping(address => bool) private s_supportedTokens;
-    mapping(address => uint256) private tokenToAmount;
     mapping(uint256 => Escrows) private s_escrows;
 
     /// @dev Events
@@ -124,19 +126,23 @@ contract Escrow is Ownable, ReentrancyGuard {
     //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
     //////////////////////////////////// @notice Escrow Owners Functions //////////////////////////////////////
 
-    function addSupportedToken(address tokenAddress) external onlyOwner {
-        if (s_supportedTokens[tokenAddress]) revert Escrow__TokenAlreadySupported();
+    function addSupportedToken(address token) external onlyOwner {
+        if (s_supportedTokens[token]) revert Escrow__TokenAlreadySupported();
 
-        s_supportedTokens[tokenAddress] = true;
+        s_supportedTokens[token] = true;
     }
 
-    function removeSupportedToken(address tokenAddress) external onlyOwner {
-        if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenAlreadyNotSupported();
+    function removeSupportedToken(address token) external onlyOwner {
+        if (!s_supportedTokens[token]) revert Escrow__TokenAlreadyNotSupported();
 
-        s_supportedTokens[tokenAddress] = false;
+        s_supportedTokens[token] = false;
     }
 
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
+
+    function checkIfTokenIsSupported(address token) external view returns (bool) {
+        return s_supportedTokens[token];
+    }
 
     function getEscrowTokenBalance(uint256 escrowId) external view returns (uint256) {
         Escrows storage escrows = s_escrows[escrowId];
@@ -144,10 +150,16 @@ contract Escrow is Ownable, ReentrancyGuard {
         return IERC20(escrows.idToPartyOneToken).balanceOf(address(this));
     }
 
-    function getTokenBalance(address tokenAddress) external view returns (uint256) {
-        if (!s_supportedTokens[tokenAddress]) revert Escrow__TokenNotSupported();
+    function getTokenBalance(address token) external view returns (uint256) {
+        if (!s_supportedTokens[token]) revert Escrow__TokenNotSupported();
 
-        return IERC20(tokenAddress).balanceOf(address(this));
+        return IERC20(token).balanceOf(address(this));
+    }
+
+    function getUserTokenBalance(address user, address token) external view returns (uint256) {
+        if (!s_supportedTokens[token]) revert Escrow__TokenNotSupported();
+
+        return IERC20(token).balanceOf(user);
     }
 
     function getEscrowData(uint256 escrowId) external view returns (address, address, address, address, uint256, uint256, EscrowStatus) {
