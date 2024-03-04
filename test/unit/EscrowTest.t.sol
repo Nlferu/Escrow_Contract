@@ -17,7 +17,9 @@ contract EscrowTest is StdCheats, Test {
     DeployEscrow escrowDeployer;
 
     Astaroth astaroth;
+    address astOwner;
     Hestus hestus;
+    address hstOwner;
     Escrow escrow;
 
     function setUp() external {
@@ -25,13 +27,13 @@ contract EscrowTest is StdCheats, Test {
         hstDeployer = new DeployHestus();
         escrowDeployer = new DeployEscrow();
 
-        (astaroth) = astDeployer.run();
-        (hestus) = hstDeployer.run();
+        (astaroth, astOwner) = astDeployer.run();
+        (hestus, hstOwner) = hstDeployer.run();
         (escrow) = escrowDeployer.run();
     }
 
     function testIsSetupPerformedCorrectly() public {
-        console.log("AST User Balance", astaroth.balanceOf(0x70997970C51812dc3A010C7d01b50e0d17dc79C8));
-        console.log("HST User Balance", hestus.balanceOf(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC));
+        console.log("AST User Balance", astaroth.balanceOf(astOwner));
+        console.log("HST User Balance", hestus.balanceOf(hstOwner));
     }
 }
