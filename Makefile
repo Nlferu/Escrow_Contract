@@ -43,3 +43,6 @@ endif
 # Deploy Escrow contract
 deploy:
 	@forge script script/DeployEscrow.s.sol:DeployEscrow $(NETWORK_ARGS)
+
+deployTokens:
+	@forge script script/DeployTokens.s.sol:DeployTokens $(NETWORK_ARGS)
