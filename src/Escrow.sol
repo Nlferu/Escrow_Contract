@@ -182,18 +182,6 @@ contract Escrow is Ownable, ReentrancyGuard {
         return s_supportedTokensList;
     }
 
-    function getEscrowTokenBalance(uint256 escrowId) external view returns (uint256) {
-        Escrows storage escrows = s_escrows[escrowId];
-
-        return IERC20(escrows.idToPartyOneToken).balanceOf(address(this));
-    }
-
-    function getTokenBalance(address token) external view returns (uint256) {
-        if (!s_supportedTokens[token]) revert Escrow__TokenNotSupported();
-
-        return IERC20(token).balanceOf(address(this));
-    }
-
     function getUserTokenBalance(address user, address token) external view returns (uint256) {
         if (!s_supportedTokens[token]) revert Escrow__TokenNotSupported();
 
