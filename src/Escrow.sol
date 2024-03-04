@@ -176,8 +176,8 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
 
-    function getSupportedTokens(address token) external view returns (bool) {
-        return s_supportedTokens[token];
+    function getSupportedTokens() external view returns (address[] memory) {
+        return s_supportedTokensList;
     }
 
     function getEscrowTokenBalance(uint256 escrowId) external view returns (uint256) {
