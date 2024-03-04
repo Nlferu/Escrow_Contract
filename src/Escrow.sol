@@ -113,7 +113,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
 
     /** @notice This function contains withdraw function */
-    function cancelEscrow(uint256 escrowId) external {
+    function cancelEscrow(uint256 escrowId) external nonReentrant {
         Escrows storage escrows = s_escrows[escrowId];
         // Add owner to allow him cancel escrow
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
