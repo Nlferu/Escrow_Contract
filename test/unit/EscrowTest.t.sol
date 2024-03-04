@@ -6,7 +6,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {StdCheats} from "forge-std/StdCheats.sol";
 import {DeployTokens} from "../../script/DeployTokens.s.sol";
 import {Astaroth} from "../../src/tokens/Astaroth.sol";
-import {Astaroth} from "../../src/tokens/Astaroth.sol";
+import {Hestus} from "../../src/tokens/Hestus.sol";
 import {DeployEscrow} from "../../script/DeployEscrow.s.sol";
 import {Escrow} from "../../src/Escrow.sol";
 
