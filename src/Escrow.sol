@@ -49,8 +49,8 @@ contract Escrow is Ownable, ReentrancyGuard {
         EscrowStatus idToEscrowStatus;
     }
     /// @dev Mappings
-    mapping(address => bool) private s_supportedTokens;
     mapping(uint256 => Escrows) private s_escrows;
+    mapping(address => bool) private s_supportedTokens;
 
     /// @dev Events
     event NewEscrowInitialized(uint256 escrowId, address initializer, address counterparty, uint256 tokensAmount);
