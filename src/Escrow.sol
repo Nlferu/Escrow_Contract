@@ -147,6 +147,8 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
 
     //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
+    /// Internal functions can be added only if we implement automatization with chainlink keepers
+
     //////////////////////////////////// @notice Escrow Owners Functions //////////////////////////////////////
 
     function addSupportedToken(address token) external onlyOwner {
