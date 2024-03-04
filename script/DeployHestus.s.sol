@@ -14,7 +14,7 @@ contract DeployHestus is Script {
         vm.startBroadcast(deployerKey);
         Hestus hestus = new Hestus(hstSupply);
         console.log("Hestus Token Deployed: ", address(hestus));
-        console.log("Hestus Token Owner: ", msg.sender);
+        console.log("Hestus Token Owner: ", vm.addr(deployerKey));
         vm.stopBroadcast();
 
         return (hestus);
