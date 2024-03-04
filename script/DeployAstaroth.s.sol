@@ -14,7 +14,7 @@ contract DeployAstaroth is Script {
         vm.startBroadcast(deployerKey);
         Astaroth astaroth = new Astaroth(astSupply);
         console.log("Astaroth Token Deployed: ", address(astaroth));
-        console.log("Astaroth Token Owner: ", msg.sender);
+        console.log("Astaroth Token Owner: ", vm.addr(deployerKey));
         console.log(address(this));
         vm.stopBroadcast();
 
