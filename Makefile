@@ -44,5 +44,8 @@ endif
 deploy:
 	@forge script script/DeployEscrow.s.sol:DeployEscrow $(NETWORK_ARGS)
 
-deployTokens:
-	@forge script script/DeployTokens.s.sol:DeployTokens $(NETWORK_ARGS)
+deployAst:
+	@forge script script/DeployAstaroth.s.sol:DeployAstaroth $(NETWORK_ARGS)
+
+deployHst:
+	@forge script script/DeployHestus.s.sol:DeployHestus $(NETWORK_ARGS)
