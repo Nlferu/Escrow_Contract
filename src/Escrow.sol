@@ -25,7 +25,6 @@ contract Escrow is Ownable, ReentrancyGuard {
     error Escrow__TokenNotSupported();
     error Escrow__TransferFailed();
     error Escrow__NotActive();
-    error Escrow__CpNotAllowed();
     error Escrow__CancelNotAllowed();
     error Escrow__ApproveFailed();
 
@@ -57,7 +56,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     mapping(address => bool) private s_supportedTokens;
 
     /// @dev Events
-    event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, address indexed counterparty, uint256 tokensAmount);
+    event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, uint256 tokensAmount);
     event TokensTransferred(address indexed token, uint256 indexed amount);
     event EscrowApprovedToUseTokens(address indexed token);
     event TokenAddedToSupportedTokensList(address indexed token);
@@ -70,8 +69,8 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow External Functions ////////////////////////////////////
 
-    /** @notice We can consider removing counterparty to allow any user to participate certain escrow */
-    function initializeEscrow(address counterparty, address initialToken, address finalToken, uint256 amount) external {
+    /** @notice Initializing escrow for chosen tokens and their amounts, where exchange is 1:1 */
+    function initializeEscrow(address initialToken, address finalToken, uint256 amount) external {
         if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
 
         emit EscrowApprovedToUseTokens(initialToken);
@@ -79,7 +78,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         bool approve = IERC20(initialToken).approve(address(this), amount);
         if (!approve) revert Escrow__ApproveFailed();
 
-        emit NewEscrowInitialized(s_totalEscrows, msg.sender, counterparty, amount);
+        emit NewEscrowInitialized(s_totalEscrows, msg.sender, amount);
         emit TokensTransferred(initialToken, amount);
 
         bool success = IERC20(initialToken).transferFrom(msg.sender, address(this), amount);
@@ -87,7 +86,6 @@ contract Escrow is Ownable, ReentrancyGuard {
 
         Escrows storage escrows = s_escrows[s_totalEscrows];
         escrows.idToPartyOne = msg.sender;
-        escrows.idToPartyTwo = counterparty;
         escrows.idToPartyOneToken = initialToken;
         escrows.idToPartyTwoToken = finalToken;
         escrows.idToPartyOneTokensAmount = amount;
@@ -99,7 +97,6 @@ contract Escrow is Ownable, ReentrancyGuard {
     function exchangeTokens(uint256 escrowId) external {
         Escrows storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
-        if (msg.sender != escrows.idToPartyTwo) revert Escrow__CpNotAllowed();
 
         emit EscrowApprovedToUseTokens(escrows.idToPartyTwoToken);
 
@@ -111,6 +108,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         bool success = IERC20(escrows.idToPartyTwoToken).transferFrom(msg.sender, address(this), escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
 
+        escrows.idToPartyTwo = msg.sender;
         escrows.idToPartyTwoTokensAmount = escrows.idToPartyOneTokensAmount;
     }
 
