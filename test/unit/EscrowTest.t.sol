@@ -12,6 +12,19 @@ import {DeployEscrow} from "../../script/DeployEscrow.s.sol";
 import {Escrow} from "../../src/Escrow.sol";
 
 contract EscrowTest is StdCheats, Test {
+    event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, uint256 tokensAmount);
+    event TokensTransferred(address indexed token, uint256 indexed amount);
+    event TokenAddedToSupportedTokensList(address indexed token);
+    event TokenRemovedFromSupportedTokensList(address indexed token);
+    event EscrowSettledSuccessfully(uint256 indexed escrowId);
+    event EscrowCancelled(uint256 indexed escrowId);
+
+    enum EscrowStatus {
+        PENDING,
+        SETTLED,
+        CANCELLED
+    }
+
     DeployAstaroth astDeployer;
     DeployHestus hstDeployer;
     DeployEscrow escrowDeployer;
@@ -32,8 +45,24 @@ contract EscrowTest is StdCheats, Test {
         (escrow) = escrowDeployer.run();
     }
 
-    function testIsSetupPerformedCorrectly() public {
+    function testCanSetupEscrowAndTokensCorrectly() public view {
         console.log("AST User Balance", astaroth.balanceOf(astOwner));
         console.log("HST User Balance", hestus.balanceOf(hstOwner));
+
+        assert(astaroth.balanceOf(address(escrow)) == 0);
+        assert(hestus.balanceOf(address(escrow)) == 0);
+        assert(astaroth.balanceOf(astOwner) == 7000);
+        assert(hestus.balanceOf(hstOwner) == 9000);
+    }
+
+    function testCanInitializeEscrow() public {
+        uint256 amount = 4000;
+
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit NewEscrowInitialized(escrow.getTotalEscrows(), astOwner, amount);
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit TokensTransferred(address(astaroth), amount);
+        vm.prank(astOwner);
+        escrow.initializeEscrow(address(astaroth), address(hestus), amount);
     }
 }
