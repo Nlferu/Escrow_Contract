@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@solmate/utils/ReentrancyGuard.sol";
 
+/** @dev Make it much more loose */
+
 interface IERC20 {
     /** @notice Allows to transfer tokens from any address to any recipient */
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
@@ -39,7 +41,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     address[] private s_supportedTokensList;
 
     /// @dev Structs
-    struct Escrows {
+    struct EscrowData {
         address idToPartyOne;
         address idToPartyTwo;
         address idToPartyOneToken;
@@ -49,7 +51,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         EscrowStatus idToEscrowStatus;
     }
     /// @dev Mappings
-    mapping(uint256 => Escrows) private s_escrows;
+    mapping(uint256 => EscrowData) private s_escrows;
     mapping(address => bool) private s_supportedTokens;
 
     /// @dev Events
@@ -76,7 +78,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         bool success = IERC20(initialToken).transferFrom(msg.sender, address(this), amount);
         if (!success) revert Escrow__TransferFailed();
 
-        Escrows storage escrows = s_escrows[s_totalEscrows];
+        EscrowData storage escrows = s_escrows[s_totalEscrows];
         escrows.idToPartyOne = msg.sender;
         escrows.idToPartyOneToken = initialToken;
         escrows.idToPartyTwoToken = finalToken;
@@ -88,7 +90,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract as msg.sender must be user */
     /** @notice This function is second part that needs to be fulfilled to settle escrow */
     function exchangeTokens(uint256 escrowId) external {
-        Escrows storage escrows = s_escrows[escrowId];
+        EscrowData storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
         emit TokensTransferred(escrows.idToPartyTwoToken, escrows.idToPartyOneTokensAmount);
@@ -102,7 +104,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     /** @notice This function contains withdraw function */
     function cancelEscrow(uint256 escrowId) external nonReentrant {
-        Escrows storage escrows = s_escrows[escrowId];
+        EscrowData storage escrows = s_escrows[escrowId];
         // Add owner to allow him cancel escrow
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
         if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo && msg.sender != owner()) revert Escrow__CancelNotAllowed();
@@ -120,7 +122,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     /** @notice If we automate this contract with chainlink automation keepers, this should be internal and callable only by keeper */
     function settleEscrow(uint256 escrowId) external onlyOwner {
-        Escrows storage escrows = s_escrows[escrowId];
+        EscrowData storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
         emit EscrowSettledSuccessfully(escrowId);
@@ -166,6 +168,10 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
 
+    function getTotalEscrows() external view returns (uint256) {
+        return s_totalEscrows;
+    }
+
     function getSupportedTokens() external view returns (address[] memory) {
         return s_supportedTokensList;
     }
@@ -177,7 +183,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
 
     function getEscrowData(uint256 escrowId) external view returns (address, address, address, address, uint256, uint256, EscrowStatus) {
-        Escrows storage escrows = s_escrows[escrowId];
+        EscrowData storage escrows = s_escrows[escrowId];
 
         return (
             escrows.idToPartyOne,
