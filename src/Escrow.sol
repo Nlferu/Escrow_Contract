@@ -37,9 +37,6 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Variables
     uint256 private s_totalEscrows;
 
-    /// @dev Arrays
-    address[] private s_supportedTokensList;
-
     /// @dev Structs
     struct EscrowData {
         address idToPartyOne;
@@ -52,7 +49,6 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
     /// @dev Mappings
     mapping(uint256 => EscrowData) private s_escrows;
-    mapping(address => bool) private s_supportedTokens;
 
     /// @dev Events
     event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, uint256 tokensAmount);
@@ -69,9 +65,9 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract as msg.sender must be user */
     /** @notice Initializing escrow for chosen tokens and their amounts, where exchange is 1:1 */
-    function initializeEscrow(address initialToken, address finalToken, uint256 amount) external {
-        if (!s_supportedTokens[initialToken] || !s_supportedTokens[finalToken]) revert Escrow__TokenNotSupported();
-
+    /** @param initialToken first token, which our escrow will hold */
+    /** @param amount as we will be exchanging tokens 1 : 1 this is amount for this settlement */
+    function initializeEscrow(address initialToken, uint256 amount) external {
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, amount);
         emit TokensTransferred(initialToken, amount);
 
@@ -81,7 +77,6 @@ contract Escrow is Ownable, ReentrancyGuard {
         EscrowData storage escrows = s_escrows[s_totalEscrows];
         escrows.idToPartyOne = msg.sender;
         escrows.idToPartyOneToken = initialToken;
-        escrows.idToPartyTwoToken = finalToken;
         escrows.idToPartyOneTokensAmount = amount;
         escrows.idToEscrowStatus = EscrowStatus.PENDING;
         s_totalEscrows += 1;
@@ -89,25 +84,29 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract as msg.sender must be user */
     /** @notice This function is second part that needs to be fulfilled to settle escrow */
-    function exchangeTokens(uint256 escrowId) external {
+    /** @param escrowId escrow account id that we want to work with */
+    /** @param exToken second token, which our escrow will hold */
+    function fulfillEscrow(uint256 escrowId, address exToken) external {
         EscrowData storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
-        emit TokensTransferred(escrows.idToPartyTwoToken, escrows.idToPartyOneTokensAmount);
+        emit TokensTransferred(exToken, escrows.idToPartyOneTokensAmount);
 
-        bool success = IERC20(escrows.idToPartyTwoToken).transferFrom(msg.sender, address(this), escrows.idToPartyOneTokensAmount);
+        bool success = IERC20(exToken).transferFrom(msg.sender, address(this), escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
 
         escrows.idToPartyTwo = msg.sender;
+        escrows.idToPartyTwoToken = exToken;
         escrows.idToPartyTwoTokensAmount = escrows.idToPartyOneTokensAmount;
     }
 
     /** @notice This function contains withdraw function */
+    /** @param escrowId escrow account id that we want to work with */
     function cancelEscrow(uint256 escrowId) external nonReentrant {
         EscrowData storage escrows = s_escrows[escrowId];
         // Add owner to allow him cancel escrow
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
-        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo && msg.sender != owner()) revert Escrow__CancelNotAllowed();
+        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
 
         emit EscrowCancelled(escrowId);
 
@@ -121,6 +120,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     }
 
     /** @notice If we automate this contract with chainlink automation keepers, this should be internal and callable only by keeper */
+    /** @param escrowId escrow account id that we want to work with */
     function settleEscrow(uint256 escrowId) external onlyOwner {
         EscrowData storage escrows = s_escrows[escrowId];
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
@@ -139,49 +139,22 @@ contract Escrow is Ownable, ReentrancyGuard {
     //////////////////////////////////// @notice Escrow Internal Functions ////////////////////////////////////
     /// Internal functions can be added only if we implement automatization with chainlink keepers
 
-    //////////////////////////////////// @notice Escrow Owners Functions //////////////////////////////////////
-
-    function addSupportedToken(address token) external onlyOwner {
-        if (s_supportedTokens[token]) revert Escrow__TokenAlreadySupported();
-
-        emit TokenAddedToSupportedTokensList(token);
-
-        s_supportedTokens[token] = true;
-        s_supportedTokensList.push(token);
-    }
-
-    function removeSupportedToken(address token) external onlyOwner {
-        if (!s_supportedTokens[token]) revert Escrow__TokenAlreadyNotSupported();
-
-        s_supportedTokens[token] = false;
-
-        for (uint i = 0; i < s_supportedTokensList.length; i++) {
-            if (s_supportedTokensList[i] == token) {
-                emit TokenRemovedFromSupportedTokensList(token);
-
-                // Swapping wallet to be removed into last spot in array, so we can pop it and avoid getting 0 in array
-                s_supportedTokensList[i] = s_supportedTokensList[s_supportedTokensList.length - 1];
-                s_supportedTokensList.pop();
-            }
-        }
-    }
-
     //////////////////////////////////// @notice Escrow Getters ////////////////////////////////////
 
+    /** @notice It gives us total number of escrows ever created by this contract */
     function getTotalEscrows() external view returns (uint256) {
         return s_totalEscrows;
     }
 
-    function getSupportedTokens() external view returns (address[] memory) {
-        return s_supportedTokensList;
-    }
-
+    /** @notice It gives us desired token balance of certain user */
+    /** @param user wallet address */
+    /** @param token ERC20 token address */
     function getUserTokenBalance(address user, address token) external view returns (uint256) {
-        if (!s_supportedTokens[token]) revert Escrow__TokenNotSupported();
-
         return IERC20(token).balanceOf(user);
     }
 
+    /** @notice It gives us all information for certain escrow */
+    /** @param escrowId escrow account id that we want to work with */
     function getEscrowData(uint256 escrowId) external view returns (address, address, address, address, uint256, uint256, EscrowStatus) {
         EscrowData storage escrows = s_escrows[escrowId];
 
