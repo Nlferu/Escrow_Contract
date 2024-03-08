@@ -63,8 +63,6 @@ contract EscrowTest is StdCheats, Test {
         vm.expectRevert(Escrow.Escrow__ZeroAmountNotAllowed.selector);
         escrow.initializeEscrow(address(astaroth), 0);
 
-        assert(escrow.getTotalEscrows() == 0);
-
         vm.expectEmit(true, false, false, false, address(escrow));
         emit NewEscrowInitialized(escrow.getTotalEscrows(), astOwner, amount);
         vm.expectEmit(true, false, false, false, address(escrow));
@@ -73,7 +71,7 @@ contract EscrowTest is StdCheats, Test {
         escrow.initializeEscrow(address(astaroth), amount);
 
         uint256 escrowAstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(astaroth));
-        (address partyOne, , address tokenOne, , uint256 tokenOneAmount, , Escrow.EscrowStatus escrowState) = escrow.getEscrowData(0);
+        (address partyOne, , address tokenOne, , uint256 tokenOneAmount, , Escrow.EscrowStatus escrowState) = escrow.getEscrowData(1);
 
         assert(partyOne == astOwner);
         assert(tokenOne == address(astaroth));
@@ -83,14 +81,22 @@ contract EscrowTest is StdCheats, Test {
         assert(escrow.getTotalEscrows() == 1);
     }
 
+    function testCantfulfillEscrowIfNotInitialized() public {
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        escrow.fulfillEscrow(0, address(hestus));
+
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        escrow.fulfillEscrow(1, address(hestus));
+    }
+
     function testCanfulfillEscrow() public escrowInitialized {
         vm.expectEmit(true, false, false, false, address(escrow));
         emit TokensTransferred(address(hestus), amount);
         vm.prank(hstOwner);
-        escrow.fulfillEscrow(0, address(hestus));
+        escrow.fulfillEscrow(1, address(hestus));
 
         uint256 escrowHstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(hestus));
-        (, address partyTwo, , address tokenTwo, , uint256 tokenTwoAmount, Escrow.EscrowStatus escrowState) = escrow.getEscrowData(0);
+        (, address partyTwo, , address tokenTwo, , uint256 tokenTwoAmount, Escrow.EscrowStatus escrowState) = escrow.getEscrowData(1);
 
         assert(partyTwo == hstOwner);
         assert(tokenTwo == address(hestus));
@@ -98,6 +104,19 @@ contract EscrowTest is StdCheats, Test {
         assert(escrowState == Escrow.EscrowStatus.PENDING);
         assert(escrowHstTokenBalance == 4000);
         assert(escrow.getTotalEscrows() == 1);
+    }
+
+    function testCantCancelEscrow() public {
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        escrow.cancelEscrow(0);
+
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        escrow.cancelEscrow(1);
+    }
+
+    function testCanCancelEscrow() public escrowInitialized {
+        vm.expectRevert(Escrow.Escrow__CancelNotAllowedForThisCaller.selector);
+        escrow.cancelEscrow(1);
     }
 
     modifier escrowInitialized() {
