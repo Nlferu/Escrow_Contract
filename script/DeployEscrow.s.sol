@@ -11,7 +11,8 @@ contract DeployEscrow is Script {
 
         vm.startBroadcast(deployerKey);
         Escrow escrow = new Escrow();
-        console.log("Escrow Deployed -> Owner: ", escrow.owner());
+        console.log("Escrow Deployed: ", address(escrow));
+        console.log("Escrow Owner: ", escrow.owner());
         vm.stopBroadcast();
 
         return (escrow);
