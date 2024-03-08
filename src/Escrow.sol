@@ -4,8 +4,6 @@ pragma solidity ^0.8.24;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@solmate/utils/ReentrancyGuard.sol";
 
-/** @dev Make it much more loose */
-
 interface IERC20 {
     /** @notice Allows to transfer tokens from any address to any recipient */
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
