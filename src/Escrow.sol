@@ -17,13 +17,11 @@ interface IERC20 {
 
 contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Errors
-    error Escrow__TokenAlreadySupported();
-    error Escrow__TokenAlreadyNotSupported();
-    error Escrow__TokenNotSupported();
     error Escrow__TransferFailed();
     error Escrow__NotActive();
     error Escrow__CancelNotAllowed();
     error Escrow__ApproveFailed();
+    error Escrow__ZeroAmountNotAllowed();
 
     /// @dev Enums
     enum EscrowStatus {
@@ -66,6 +64,8 @@ contract Escrow is Ownable, ReentrancyGuard {
     /** @param initialToken first token, which our escrow will hold */
     /** @param amount as we will be exchanging tokens 1 : 1 this is amount for this settlement */
     function initializeEscrow(address initialToken, uint256 amount) external {
+        if (amount <= 0) revert Escrow__ZeroAmountNotAllowed();
+
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, amount);
         emit TokensTransferred(initialToken, amount);
 
