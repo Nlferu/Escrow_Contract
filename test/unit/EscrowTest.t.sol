@@ -19,12 +19,6 @@ contract EscrowTest is StdCheats, Test {
     event EscrowSettledSuccessfully(uint256 indexed escrowId);
     event EscrowCancelled(uint256 indexed escrowId);
 
-    enum EscrowStatus {
-        PENDING,
-        SETTLED,
-        CANCELLED
-    }
-
     DeployAstaroth astDeployer;
     DeployHestus hstDeployer;
     DeployEscrow escrowDeployer;
@@ -62,14 +56,54 @@ contract EscrowTest is StdCheats, Test {
         assert(hestus.balanceOf(address(escrow)) == 0);
         assert(astaroth.balanceOf(astOwner) == 7000);
         assert(hestus.balanceOf(hstOwner) == 9000);
+        assert(escrow.owner() == 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
     }
 
     function testCanInitializeEscrow() public {
+        vm.expectRevert(Escrow.Escrow__ZeroAmountNotAllowed.selector);
+        escrow.initializeEscrow(address(astaroth), 0);
+
+        assert(escrow.getTotalEscrows() == 0);
+
         vm.expectEmit(true, false, false, false, address(escrow));
         emit NewEscrowInitialized(escrow.getTotalEscrows(), astOwner, amount);
         vm.expectEmit(true, false, false, false, address(escrow));
         emit TokensTransferred(address(astaroth), amount);
         vm.prank(astOwner);
         escrow.initializeEscrow(address(astaroth), amount);
+
+        uint256 escrowAstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(astaroth));
+        (address partyOne, , address tokenOne, , uint256 tokenOneAmount, , Escrow.EscrowStatus escrowState) = escrow.getEscrowData(0);
+
+        assert(partyOne == astOwner);
+        assert(tokenOne == address(astaroth));
+        assert(tokenOneAmount == 4000);
+        assert(escrowState == Escrow.EscrowStatus.PENDING);
+        assert(escrowAstTokenBalance == 4000);
+        assert(escrow.getTotalEscrows() == 1);
+    }
+
+    function testCanfulfillEscrow() public escrowInitialized {
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit TokensTransferred(address(hestus), amount);
+        vm.prank(hstOwner);
+        escrow.fulfillEscrow(0, address(hestus));
+
+        uint256 escrowHstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(hestus));
+        (, address partyTwo, , address tokenTwo, , uint256 tokenTwoAmount, Escrow.EscrowStatus escrowState) = escrow.getEscrowData(0);
+
+        assert(partyTwo == hstOwner);
+        assert(tokenTwo == address(hestus));
+        assert(tokenTwoAmount == 4000);
+        assert(escrowState == Escrow.EscrowStatus.PENDING);
+        assert(escrowHstTokenBalance == 4000);
+        assert(escrow.getTotalEscrows() == 1);
+    }
+
+    modifier escrowInitialized() {
+        vm.prank(astOwner);
+        escrow.initializeEscrow(address(astaroth), amount);
+
+        _;
     }
 }
