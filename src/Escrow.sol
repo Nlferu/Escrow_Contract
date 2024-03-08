@@ -19,12 +19,14 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Errors
     error Escrow__TransferFailed();
     error Escrow__NotActive();
-    error Escrow__CancelNotAllowed();
+    error Escrow__CancelNotAllowedForThisCaller();
     error Escrow__ApproveFailed();
     error Escrow__ZeroAmountNotAllowed();
+    error Escrow__EscrowDoesNotExists();
 
     /// @dev Enums
     enum EscrowStatus {
+        UNINITIALIZED,
         PENDING,
         SETTLED,
         CANCELLED
@@ -69,6 +71,8 @@ contract Escrow is Ownable, ReentrancyGuard {
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, amount);
         emit TokensTransferred(initialToken, amount);
 
+        s_totalEscrows += 1;
+
         bool success = IERC20(initialToken).transferFrom(msg.sender, address(this), amount);
         if (!success) revert Escrow__TransferFailed();
 
@@ -77,7 +81,6 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToPartyOneToken = initialToken;
         escrows.idToPartyOneTokensAmount = amount;
         escrows.idToEscrowStatus = EscrowStatus.PENDING;
-        s_totalEscrows += 1;
     }
 
     /** REQUIRE - this function require user to first approve escrow for usage of certain token amount we cannot do it in this contract as msg.sender must be user */
@@ -86,6 +89,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /** @param exToken second token, which our escrow will hold */
     function fulfillEscrow(uint256 escrowId, address exToken) external {
         EscrowData storage escrows = s_escrows[escrowId];
+        if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
         emit TokensTransferred(exToken, escrows.idToPartyOneTokensAmount);
@@ -102,9 +106,9 @@ contract Escrow is Ownable, ReentrancyGuard {
     /** @param escrowId escrow account id that we want to work with */
     function cancelEscrow(uint256 escrowId) external nonReentrant {
         EscrowData storage escrows = s_escrows[escrowId];
-        // Add owner to allow him cancel escrow
+        if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
-        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowed();
+        if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowedForThisCaller();
 
         emit EscrowCancelled(escrowId);
 
@@ -121,6 +125,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /** @param escrowId escrow account id that we want to work with */
     function settleEscrow(uint256 escrowId) external onlyOwner {
         EscrowData storage escrows = s_escrows[escrowId];
+        if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
         emit EscrowSettledSuccessfully(escrowId);
@@ -155,6 +160,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /** @param escrowId escrow account id that we want to work with */
     function getEscrowData(uint256 escrowId) external view returns (address, address, address, address, uint256, uint256, EscrowStatus) {
         EscrowData storage escrows = s_escrows[escrowId];
+        if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
 
         return (
             escrows.idToPartyOne,
