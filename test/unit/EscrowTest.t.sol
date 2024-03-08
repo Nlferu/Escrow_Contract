@@ -35,6 +35,8 @@ contract EscrowTest is StdCheats, Test {
     address hstOwner;
     Escrow escrow;
 
+    uint256 amount = 4000;
+
     function setUp() external {
         astDeployer = new DeployAstaroth();
         hstDeployer = new DeployHestus();
@@ -43,6 +45,13 @@ contract EscrowTest is StdCheats, Test {
         (astaroth, astOwner) = astDeployer.run();
         (hestus, hstOwner) = hstDeployer.run();
         (escrow) = escrowDeployer.run();
+
+        /** @notice User needs to approve our smart contract directly to allow for performing transactions using desired token */
+        vm.prank(astOwner);
+        astaroth.approve(address(escrow), amount);
+
+        vm.prank(hstOwner);
+        hestus.approve(address(escrow), amount);
     }
 
     function testCanSetupEscrowAndTokensCorrectly() public view {
@@ -56,13 +65,11 @@ contract EscrowTest is StdCheats, Test {
     }
 
     function testCanInitializeEscrow() public {
-        uint256 amount = 4000;
-
         vm.expectEmit(true, false, false, false, address(escrow));
         emit NewEscrowInitialized(escrow.getTotalEscrows(), astOwner, amount);
         vm.expectEmit(true, false, false, false, address(escrow));
         emit TokensTransferred(address(astaroth), amount);
         vm.prank(astOwner);
-        escrow.initializeEscrow(address(astaroth), address(hestus), amount);
+        escrow.initializeEscrow(address(astaroth), amount);
     }
 }
