@@ -101,7 +101,7 @@ contract EscrowTest is StdCheats, Test {
         assert(partyTwo == hstOwner);
         assert(tokenTwo == address(hestus));
         assert(tokenTwoAmount == 4000);
-        assert(escrowState == Escrow.EscrowStatus.PENDING);
+        assert(escrowState == Escrow.EscrowStatus.FULFILLED);
         assert(escrowHstTokenBalance == 4000);
         assert(escrow.getTotalEscrows() == 1);
     }
@@ -114,9 +114,55 @@ contract EscrowTest is StdCheats, Test {
         escrow.cancelEscrow(1);
     }
 
-    function testCanCancelEscrow() public escrowInitialized {
+    function testCanCancelEscrowWhenEscrowPending() public escrowInitialized {
         vm.expectRevert(Escrow.Escrow__CancelNotAllowedForThisCaller.selector);
         escrow.cancelEscrow(1);
+
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit EscrowCancelled(1);
+        vm.prank(astOwner);
+        escrow.cancelEscrow(1);
+
+        uint256 escrowAstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(astaroth));
+        uint256 escrowHstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(hestus));
+
+        assert(escrowAstTokenBalance == 0);
+        assert(escrowHstTokenBalance == 0);
+        assert(astaroth.balanceOf(astOwner) == 7000);
+        assert(hestus.balanceOf(hstOwner) == 9000);
+    }
+
+    function testCanCancelEscrowWhenEscrowFulfilled() public escrowInitialized {
+        vm.expectRevert(Escrow.Escrow__CancelNotAllowedForThisCaller.selector);
+        escrow.cancelEscrow(1);
+
+        vm.prank(hstOwner);
+        escrow.fulfillEscrow(1, address(hestus));
+
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit EscrowCancelled(1);
+        vm.prank(hstOwner);
+        escrow.cancelEscrow(1);
+
+        uint256 escrowAstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(astaroth));
+        uint256 escrowHstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(hestus));
+
+        assert(escrowAstTokenBalance == 0);
+        assert(escrowHstTokenBalance == 0);
+        assert(astaroth.balanceOf(astOwner) == 7000);
+        assert(hestus.balanceOf(hstOwner) == 9000);
+    }
+
+    function testCantSettleEscrow() public {
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        vm.prank(escrow.owner());
+        escrow.settleEscrow(1);
+    }
+
+    function testOnlyOwnerCanSettleEscrow() public escrowInitialized {
+        vm.expectRevert(Escrow.Escrow__NotActive.selector);
+        vm.prank(escrow.owner());
+        escrow.settleEscrow(1);
     }
 
     modifier escrowInitialized() {
