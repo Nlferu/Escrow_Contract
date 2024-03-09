@@ -144,11 +144,13 @@ contract EscrowTest is StdCheats, Test {
 
         uint256 escrowAstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(astaroth));
         uint256 escrowHstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(hestus));
+        (, , , , , , Escrow.EscrowStatus escrowState) = escrow.getEscrowData(1);
 
         assert(escrowAstTokenBalance == 0);
         assert(escrowHstTokenBalance == 0);
         assert(astaroth.balanceOf(astOwner) == 7000);
         assert(hestus.balanceOf(hstOwner) == 9000);
+        assert(escrowState == Escrow.EscrowStatus.CANCELLED);
     }
 
     function testCantSettleEscrow() public {
@@ -172,6 +174,18 @@ contract EscrowTest is StdCheats, Test {
         emit EscrowSettledSuccessfully(1);
         vm.prank(escrow.owner());
         escrow.settleEscrow(1);
+
+        uint256 escrowAstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(astaroth));
+        uint256 escrowHstTokenBalance = escrow.getUserTokenBalance(address(escrow), address(hestus));
+        (, , , , , , Escrow.EscrowStatus escrowState) = escrow.getEscrowData(1);
+
+        assert(escrowAstTokenBalance == 0);
+        assert(escrowHstTokenBalance == 0);
+        assert(astaroth.balanceOf(astOwner) == 3000);
+        assert(astaroth.balanceOf(hstOwner) == 4000);
+        assert(hestus.balanceOf(astOwner) == 4000);
+        assert(hestus.balanceOf(hstOwner) == 5000);
+        assert(escrowState == Escrow.EscrowStatus.SETTLED);
     }
 
     modifier escrowInitialized() {
