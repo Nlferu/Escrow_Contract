@@ -52,7 +52,7 @@ contract Escrow is Ownable, ReentrancyGuard {
 
     /// @dev Events
     event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, uint256 tokensAmount);
-    event TokensTransferred(address indexed token, uint256 indexed amount);
+    event EscrowFulfilled(address indexed token, uint256 indexed amount);
     event TokenAddedToSupportedTokensList(address indexed token);
     event TokenRemovedFromSupportedTokensList(address indexed token);
     event EscrowSettledSuccessfully(uint256 indexed escrowId);
@@ -71,7 +71,6 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (amount <= 0) revert Escrow__ZeroAmountNotAllowed();
 
         emit NewEscrowInitialized(s_totalEscrows, msg.sender, amount);
-        emit TokensTransferred(initialToken, amount);
 
         s_totalEscrows += 1;
 
@@ -94,7 +93,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
         if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
 
-        emit TokensTransferred(exToken, escrows.idToPartyOneTokensAmount);
+        emit EscrowFulfilled(exToken, escrows.idToPartyOneTokensAmount);
 
         bool success = IERC20(exToken).transferFrom(msg.sender, address(this), escrows.idToPartyOneTokensAmount);
         if (!success) revert Escrow__TransferFailed();
@@ -116,17 +115,12 @@ contract Escrow is Ownable, ReentrancyGuard {
         emit EscrowCancelled(escrowId);
 
         if (escrows.idToEscrowStatus == EscrowStatus.FULFILLED) {
-            emit TokensTransferred(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
-            emit TokensTransferred(escrows.idToPartyTwo, escrows.idToPartyTwoTokensAmount);
-
             bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
             if (!success) revert Escrow__TransferFailed();
 
             bool transfer = IERC20(escrows.idToPartyTwoToken).transfer(escrows.idToPartyTwo, escrows.idToPartyTwoTokensAmount);
             if (!transfer) revert Escrow__TransferFailed();
         } else {
-            emit TokensTransferred(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
-
             bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
             if (!success) revert Escrow__TransferFailed();
         }
