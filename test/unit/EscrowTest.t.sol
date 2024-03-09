@@ -186,6 +186,19 @@ contract EscrowTest is StdCheats, Test {
         assert(hestus.balanceOf(astOwner) == 4000);
         assert(hestus.balanceOf(hstOwner) == 5000);
         assert(escrowState == Escrow.EscrowStatus.SETTLED);
+
+        vm.expectRevert(Escrow.Escrow__NotActive.selector);
+        vm.prank(hstOwner);
+        escrow.cancelEscrow(1);
+
+        vm.expectRevert(Escrow.Escrow__NotActive.selector);
+        vm.prank(hstOwner);
+        escrow.fulfillEscrow(1, address(hestus));
+    }
+
+    function testCantGetEscrowDataIfEscrowNotExists() public {
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        escrow.getEscrowData(1);
     }
 
     modifier escrowInitialized() {
