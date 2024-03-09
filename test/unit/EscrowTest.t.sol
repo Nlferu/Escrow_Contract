@@ -154,14 +154,17 @@ contract EscrowTest is StdCheats, Test {
     }
 
     function testCantSettleEscrow() public {
-        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
+        vm.expectRevert();
+        escrow.settleEscrow(1);
+
         vm.prank(escrow.owner());
+        vm.expectRevert(Escrow.Escrow__EscrowDoesNotExists.selector);
         escrow.settleEscrow(1);
     }
 
     function testOnlyOwnerCanSettleEscrow() public escrowInitialized {
-        vm.expectRevert(Escrow.Escrow__NotActive.selector);
         vm.prank(escrow.owner());
+        vm.expectRevert(Escrow.Escrow__NotActive.selector);
         escrow.settleEscrow(1);
     }
 
