@@ -13,7 +13,7 @@ import {Escrow} from "../../src/Escrow.sol";
 
 contract EscrowTest is StdCheats, Test {
     event NewEscrowInitialized(uint256 indexed escrowId, address indexed initializer, uint256 tokensAmount);
-    event TokensTransferred(address indexed token, uint256 indexed amount);
+    event EscrowFulfilled(address indexed token, uint256 indexed amount);
     event TokenAddedToSupportedTokensList(address indexed token);
     event TokenRemovedFromSupportedTokensList(address indexed token);
     event EscrowSettledSuccessfully(uint256 indexed escrowId);
@@ -65,8 +65,6 @@ contract EscrowTest is StdCheats, Test {
 
         vm.expectEmit(true, false, false, false, address(escrow));
         emit NewEscrowInitialized(escrow.getTotalEscrows(), astOwner, amount);
-        vm.expectEmit(true, false, false, false, address(escrow));
-        emit TokensTransferred(address(astaroth), amount);
         vm.prank(astOwner);
         escrow.initializeEscrow(address(astaroth), amount);
 
@@ -91,7 +89,7 @@ contract EscrowTest is StdCheats, Test {
 
     function testCanfulfillEscrow() public escrowInitialized {
         vm.expectEmit(true, false, false, false, address(escrow));
-        emit TokensTransferred(address(hestus), amount);
+        emit EscrowFulfilled(address(hestus), amount);
         vm.prank(hstOwner);
         escrow.fulfillEscrow(1, address(hestus));
 
@@ -165,6 +163,14 @@ contract EscrowTest is StdCheats, Test {
     function testOnlyOwnerCanSettleEscrow() public escrowInitialized {
         vm.prank(escrow.owner());
         vm.expectRevert(Escrow.Escrow__NotActive.selector);
+        escrow.settleEscrow(1);
+
+        vm.prank(hstOwner);
+        escrow.fulfillEscrow(1, address(hestus));
+
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit EscrowSettledSuccessfully(1);
+        vm.prank(escrow.owner());
         escrow.settleEscrow(1);
     }
 
