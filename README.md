@@ -26,3 +26,7 @@
     ● Utilizing a generic token type (SPL Token, Erc20, PSP22) based on your chosen ecosystem.
     ● Address potential security concerns, particularly vulnerabilities like reentrancy.
     ● Includes end-to-end unit tests using type script.
+
+## Tests Coverage
+
+![alt text](test_coverage.png)
