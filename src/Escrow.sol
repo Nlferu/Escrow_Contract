@@ -19,6 +19,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     /// @dev Errors
     error Escrow__TransferFailed();
     error Escrow__NotActive();
+    error Escrow__NotFulfilled();
     error Escrow__CancelNotAllowedForThisCaller();
     error Escrow__ApproveFailed();
     error Escrow__ZeroAmountNotAllowed();
@@ -28,6 +29,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     enum EscrowStatus {
         UNINITIALIZED,
         PENDING,
+        FULFILLED,
         SETTLED,
         CANCELLED
     }
@@ -100,6 +102,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         escrows.idToPartyTwo = msg.sender;
         escrows.idToPartyTwoToken = exToken;
         escrows.idToPartyTwoTokensAmount = escrows.idToPartyOneTokensAmount;
+        escrows.idToEscrowStatus = EscrowStatus.FULFILLED;
     }
 
     /** @notice This function contains withdraw function */
@@ -107,16 +110,26 @@ contract Escrow is Ownable, ReentrancyGuard {
     function cancelEscrow(uint256 escrowId) external nonReentrant {
         EscrowData storage escrows = s_escrows[escrowId];
         if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
-        if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
+        if (escrows.idToEscrowStatus != EscrowStatus.PENDING && escrows.idToEscrowStatus != EscrowStatus.FULFILLED) revert Escrow__NotActive();
         if (msg.sender != escrows.idToPartyOne && msg.sender != escrows.idToPartyTwo) revert Escrow__CancelNotAllowedForThisCaller();
 
         emit EscrowCancelled(escrowId);
 
-        bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
-        if (!success) revert Escrow__TransferFailed();
+        if (escrows.idToEscrowStatus == EscrowStatus.FULFILLED) {
+            emit TokensTransferred(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
+            emit TokensTransferred(escrows.idToPartyTwo, escrows.idToPartyTwoTokensAmount);
 
-        bool transfer = IERC20(escrows.idToPartyTwoToken).transfer(escrows.idToPartyTwo, escrows.idToPartyTwoTokensAmount);
-        if (!transfer) revert Escrow__TransferFailed();
+            bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
+            if (!success) revert Escrow__TransferFailed();
+
+            bool transfer = IERC20(escrows.idToPartyTwoToken).transfer(escrows.idToPartyTwo, escrows.idToPartyTwoTokensAmount);
+            if (!transfer) revert Escrow__TransferFailed();
+        } else {
+            emit TokensTransferred(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
+
+            bool success = IERC20(escrows.idToPartyOneToken).transfer(escrows.idToPartyOne, escrows.idToPartyOneTokensAmount);
+            if (!success) revert Escrow__TransferFailed();
+        }
 
         escrows.idToEscrowStatus = EscrowStatus.CANCELLED;
     }
@@ -126,7 +139,7 @@ contract Escrow is Ownable, ReentrancyGuard {
     function settleEscrow(uint256 escrowId) external onlyOwner {
         EscrowData storage escrows = s_escrows[escrowId];
         if (escrowId == 0 || escrowId > s_totalEscrows) revert Escrow__EscrowDoesNotExists();
-        if (escrows.idToEscrowStatus != EscrowStatus.PENDING) revert Escrow__NotActive();
+        if (escrows.idToEscrowStatus != EscrowStatus.FULFILLED) revert Escrow__NotActive();
 
         emit EscrowSettledSuccessfully(escrowId);
 
