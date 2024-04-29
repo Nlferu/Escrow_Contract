@@ -47,6 +47,7 @@ contract Escrow is Ownable, ReentrancyGuard {
         uint256 idToPartyTwoTokensAmount;
         EscrowStatus idToEscrowStatus;
     }
+
     /// @dev Mappings
     mapping(uint256 => EscrowData) private s_escrows;
 
